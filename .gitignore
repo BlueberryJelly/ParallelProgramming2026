@@ -1,0 +1,7 @@
+.vs
+.vscode
+*.pdb
+
+build/
+
+CMakeUserPresets.json
