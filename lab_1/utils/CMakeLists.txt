@@ -3,6 +3,6 @@ target_sources(utils
     PUBLIC
     FILE_SET CXX_MODULES
     FILES
-    in_out_data.cppm
-    square_matrix.cppm
+    matrix.cppm
+    in_out_matrix.cppm
     utils.ixx)
