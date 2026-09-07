@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <format>
+#include <cstdint>
 
 namespace matrix
 {
