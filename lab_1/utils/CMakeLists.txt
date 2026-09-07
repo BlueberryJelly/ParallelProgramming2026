@@ -1,8 +1,5 @@
-add_library(utils STATIC)
-target_sources(utils
-    PUBLIC
-    FILE_SET CXX_MODULES
-    FILES
-    matrix.cppm
-    in_out_matrix.cppm
-    utils.ixx)
+add_library(utils INTERFACE)
+target_include_directories(utils
+    INTERFACE
+    matrix.hpp
+    in_out_matrix.hpp)
