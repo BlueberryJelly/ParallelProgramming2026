@@ -4,7 +4,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "matrix.hpp"
@@ -58,7 +57,7 @@ namespace matrix_ops
         }
     };
 
-    inline std::unique_ptr<IMatrixMultiplier> create_multiplier(const std::string &strategy, std::uint32_t threads)
+    inline std::unique_ptr<IMatrixMultiplier> create_multiplier(const std::string &strategy)
     {
         if (strategy == "sequential")
         {

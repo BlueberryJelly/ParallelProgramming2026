@@ -4,12 +4,11 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <thread>
 
-#include "json_utils.hpp"
-#include "matrix.hpp"
-#include "multiplier.hpp"
-#include "timer.hpp"
+#include "../../utils/json_utils.hpp"
+#include "../../utils/matrix.hpp"
+#include "../../utils/multiplier.hpp"
+#include "../../utils/timer.hpp"
 
 namespace
 {
@@ -49,7 +48,7 @@ int main(int argc, char **argv)
 
         matrix::Matrix::check_multiplicable(a, b);
 
-        const auto multiplier = matrix_ops::create_multiplier(options.strategy, options.threads);
+        const auto multiplier = matrix_ops::create_multiplier(options.strategy);
 
         util::Timer timer;
         timer.start();

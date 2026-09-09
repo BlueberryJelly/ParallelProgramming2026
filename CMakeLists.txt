@@ -11,4 +11,5 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/utf-8 /W4)
 endif()
 
+add_subdirectory(utils)
 add_subdirectory(lab_1)
