@@ -91,6 +91,7 @@ pip install -r requirements.txt
 make help
 make all
 make configure
+make build
 make generate_matrices
 make run_experiments
 make aggregate_jsonl_to_csv
