@@ -61,3 +61,10 @@ aggregate_jsonl_to_csv:
 	@python3 "$(SCRIPTS_DIR)/aggregate_jsonl_to_csv.py" \
 		$(GENERAL_JSON) \
 		--csv-out $(GENERAL_CSV)
+
+validate:
+	@for s in $(SIZES); do \
+		python3 "$(SCRIPTS_DIR)/validate.py" \
+			"$(DATA_DIR)/input_$$s.json" \
+			"$(RESULTS_DIR)/output_$$s.json"; \
+	done
