@@ -38,7 +38,7 @@ def main() -> None:
 
     print(f"Размер:                 {a.shape[0]}x{a.shape[0]}")
     print(f"Стратегия:              {output_data.get('strategy')}")
-    print(f"Время (C++) c:          {output_data.get('elapsed_seconds')}")
+    print(f"Время (C++) sec:          {output_data.get('elapsed_seconds')}")
     print(f"Совпадает с NumPy:      {ok}")
     print(f"Макс. абс. ошибка:      {max_abs_err:.3e}")
     print(f"Макс. отн. ошибка:      {max_rel_err:.3e}")

@@ -16,7 +16,7 @@ GENERAL_JSON := $(RESULTS_DIR)/general.jsonl
 GENERAL_CSV := $(REPORT_DIR)/general.csv
 
 
-SIZES ?= 200 400 800 1200 1600 2000
+SIZES ?= 250 500 750 1000 1250 1500 1750 2000
 
 .PHONY: help all configure build data start plots
 
@@ -25,14 +25,16 @@ SIZES ?= 200 400 800 1200 1600 2000
 help:
 	@echo "Доступные команды:"
 	@sed -n 's/^## //p' $(MAKEFILE_LIST) | column -t -s ':'
-	@echo "configure, build, generate_matrices, run_experiments, aggregate_jsonl_to_csv"
-	@echo "Пример: make start SIZES=\"200 400 800\""
+	@echo "configure, build, generate_matrices, run_experiments, aggregate_jsonl_to_csv, validate, visualize"
+	@echo "Пример: make generate_matrices SIZES=\"200 400 800\""
 
 all: configure \
 	 build \
 	 generate_matrices \
 	 run_experiments \
-	 aggregate_jsonl_to_csv
+	 aggregate_jsonl_to_csv \
+	 validate \
+	 visualize
 
 configure:
 	cmake -G Ninja -B $(BUILD_DIR)
@@ -42,6 +44,7 @@ build:
 	cmake --build $(BUILD_DIR)
 
 generate_matrices:
+	@rm -rf $(DATA_DIR)
 	@mkdir -p $(DATA_DIR)
 	@python3 "$(SCRIPTS_DIR)/generate_matrices.py" \
 		--out-dir $(DATA_DIR) \
@@ -49,6 +52,7 @@ generate_matrices:
 		--seed 42
 
 run_experiments:
+	@rm -rf $(RESULTS_DIR)
 	@mkdir -p $(RESULTS_DIR)
 	@python3 "$(SCRIPTS_DIR)/run_experiments.py" \
 		--binary $(BUILD_BIN) \
@@ -58,6 +62,7 @@ run_experiments:
 		--jsonl-out $(GENERAL_JSON)
 
 aggregate_jsonl_to_csv:
+	@rm -f GENERAL_CSV
 	@python3 "$(SCRIPTS_DIR)/aggregate_jsonl_to_csv.py" \
 		$(GENERAL_JSON) \
 		--csv-out $(GENERAL_CSV)
@@ -68,3 +73,10 @@ validate:
 			"$(DATA_DIR)/input_$$s.json" \
 			"$(RESULTS_DIR)/output_$$s.json"; \
 	done
+
+visualize:
+	@rm -rf $(FIGURES_DIR)
+	@mkdir -p $(FIGURES_DIR)
+	@python3 "$(SCRIPTS_DIR)/visualize.py" \
+	$(GENERAL_CSV) \
+	--out-dir $(FIGURES_DIR)
