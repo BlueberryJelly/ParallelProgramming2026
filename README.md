@@ -79,7 +79,7 @@ ParallelProgramming2026/
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Linux / macOS
-# .venv\Scripts\Activate.ps1     # Windows (PowerShell)
+# .venv\Scripts\Activate.bat     # Windows (PowerShell)
 
 pip install --upgrade pip
 pip install -r requirements.txt
