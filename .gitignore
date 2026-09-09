@@ -3,5 +3,9 @@
 *.pdb
 
 build/
+data/
+results/
 
 CMakeUserPresets.json
+
+*.venv

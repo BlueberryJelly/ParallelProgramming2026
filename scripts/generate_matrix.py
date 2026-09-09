@@ -35,7 +35,7 @@ def main() -> None:
             "sizes": n,
         }
 
-        out_path = args.out.dir / f"input_{n}.json"
+        out_path = args.out_dir / f"input_{n}.json"
         with out_path.open("w", encoding="utf-8") as f:
             json.dump(payload, f)
 
