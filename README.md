@@ -20,3 +20,14 @@ source .venv/bin/activate        # Linux / macOS
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+## Команды Makefile
+
+```bash
+make help
+make all
+make configure
+make generate_matrices
+make run_experiments
+make aggregate_jsonl_to_csv
+```
