@@ -11,7 +11,7 @@ def plot_time_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
     fig, ax = plt.subplots(figsize=(9, 6))
 
     sorted_df = df.sort_values("size")
-    ax.plot(sorted_df["size"], sorted_df["elapsed_seconds"], marker="o")
+    ax.plot(sorted_df["size"], sorted_df["elapsed_seconds"]*1000, marker="o")
 
     ax.set_xlabel("Размер матрицы N (N x N)")
     ax.set_ylabel("Время выполнения, ms")
