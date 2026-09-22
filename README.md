@@ -1,100 +1,66 @@
-# ParallelProgramming2026
-Лабораторные работы по параллельному программированию
+# Параллельное программирование
 
-## Отчёты:
-- [**Лабораторная работа 1**](lab_1/report/README.md).
+Цикл лабораторных работ по умножению квадратных матриц: последовательная реализация, OpenMP, MPI (суперкомпьютер «Сергей Королёв»), CUDA. Исследуемые алгоритмы написаны на C++, генерация данных, проверка результатов и построение графиков — на Python.
 
-## Задача
-Реализовать различные подходы к вычислению произведения квадратных двумерных массивов.
+| Лабораторная | Тема | Исходники | Отчёт | Результаты |
+|---|---|---|---|---|
+| lab_01 | Последовательное умножение (тройной цикл) | [src/lab_01](src/lab_01) | [reports/lab_01](reports/lab_01/README.md) | [results/lab_01](results/lab_01) |
+| lab_02 | — | [src/lab_02](src/lab_02) | [reports/lab_02](reports/lab_02) | [results/lab_02](results/lab_02) |
+| lab_03 | — | [src/lab_03](src/lab_03) | [reports/lab_03](reports/lab_03) | [results/lab_03](results/lab_03) |
+| lab_04 | — | [src/lab_04](src/lab_04) | [reports/lab_04](reports/lab_04) | [results/lab_04](results/lab_04) |
+| lab_05 | — | [src/lab_05](src/lab_05) | [reports/lab_05](reports/lab_05) | [results/lab_05](results/lab_05) |
 
-## Методология
-Многократные опыты на разных наборах данных. Входные данные - файлы `input_N.json`, в каждом из которых записано две матрицы, заполненные случайными числами, обе имеют размерность `N*N`. Выходные данные - файлы `output_N.json`, в каждом из которых записана одна матрица размерности `N*N` - произведение входных матриц. Секундомер активируется непосредственно перед началом вычисления выходной матрицы и деактивируется, когда выходная матрица вычислена.
+## Структура репозитория
 
-## Верификация
-Проверку результатов выполняет скрипт `validate.py`, результатом его работы является запись вида
-
-```bash
-Размер:                 2000x2000
-Стратегия:              sequential
-Время (C++) sec:          74.9974
-Совпадает с NumPy:      True
-Макс. абс. ошибка:      3.274e-11
-Макс. отн. ошибка:      1.257e-09
 ```
-
-## Агрегация
-Выходные данные объединяются в `general.jsonl` и приводятся к табличному формату `general.csv`.
-
-## Визуализация
-Данные из `general.csv` используются для графического отображения необходимых зависимостей.
-
-## Результат
-Результатом является отчёт в формате README.md, где используются построенные графики и полученные замеры.
-
-## Структура проекта
-```
-ParallelProgramming2026/
-├── data/
-│   └── *.json
-├── lab_X/
-│   ├── src/
-│   │   ├── CMakeLists.txt
-│   │   └── main.cpp
-│   ├── report/
-│   │   ├── figures/
-│   │   │   └── *.png
-│   │   ├── general.csv
-│   │   └── README.md
-│   ├── results/
-│   │   ├── *.json
-│   │   └── general.jsonl
-│   └── CMakeLists.txt
-├── scripts/
-│   ├── aggregate_jsonl_to_csv.py
-│   ├── generate_matrices.py
-│   ├── run_experiments.py
-│   ├── validate.py
-│   └── visualize.py
-├── utils/
-│   ├── json_utils.hpp
-│   ├── matrix.hpp
-│   ├── multiplier.hpp
-│   └── timer.hpp
-├── CMakeLists.txt
-├── CMakePresets.json
-├── Makefile
-├── requirements.txt
-├── .gitignore
-└── README.md
+data/                 входные матрицы input_<N>.json (генерируются, в git не хранятся)
+reports/lab_XX/       отчёт README.md и графики figures/
+results/lab_XX/       результаты замеров: general.jsonl, general.csv, output_<N>.json (в git хранятся .jsonl, .csv)
+scripts/              генерация данных, запуск замеров, агрегация, проверка, графики
+src/utils/            общие заголовочные заголовочные утилит: Matrix, JSON, Timer, стратегии умножения
+src/lab_XX/           исходники лабораторной и её CMakeLists.txt
+.env.example          пример локальных настроек для Makefile
+CMakeLists.txt        корневой проект, подключает src/lab_XX
+CMakePresets.json     пресеты сборки release / debug (Ninja)
+Makefile              единая точка входа
+requirements.txt      зависимости Python
 ```
 
 ## Требования
 
-- CMake ≥ 3.20, Ninja, компилятор GCC или Clang;
-- Python 3.10+, `make`;
-- Python-пакеты `matplotlib`, `numpy`, `pandas`.
-
-## Подготовка и быстрый старт
+CMake ≥ 3.20, Ninja, компилятор с поддержкой C++20 (GCC, Clang или MSVC), Python ≥ 3.10.
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate        # Linux / macOS
-# .venv\Scripts\Activate.bat     # Windows (PowerShell)
-
-pip install --upgrade pip
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
-## Команды Makefile
+## Запуск
 
 ```bash
-make help
 make all
-make configure
-make build
-make generate_matrices
-make run_experiments
-make aggregate_jsonl_to_csv
-make validate
-make visualize
+make all SIZES="200 400 800"
+make build PRESET=debug
 ```
+
+Отдельные шаги: `configure`, `build`, `generate_matrices`, `run_experiments`, `aggregate_jsonl_to_csv`, `validate`, `visualize`. Без Make сборка выполняется так:
+
+```bash
+cmake --preset release
+cmake --build --preset release
+./build/release/src/lab_01/lab_01 data/input_1000.json results/lab_01/output_1000.json
+```
+
+## Методика исследования
+
+Входные данные — пары квадратных матриц `double` размера N×N с элементами, равномерно распределёнными на [-10, 10]; генератор NumPy с фиксированным seed = 42 (для второй матрицы seed + 1), что делает данные воспроизводимыми.
+
+Программа читает `matrix_a` и `matrix_b` из JSON, умножает их и записывает результат вместе с метриками в `output_<N>.json`. Для каждого размера фиксируются:
+
+- `elapsed_seconds` — время только самого умножения, измеренное `std::chrono::steady_clock` внутри программы (без чтения и записи JSON);
+- `wall_time_seconds` — полное время запуска процесса, измеренное из Python;
+- `flops` — число операций с плавающей точкой, 2·N·M·P (умножения и сложения);
+- `memory_bytes` — объём трёх матриц (A, B, результат) в байтах.
+
+Результат каждого запуска сверяется с `numpy` (`a @ b`) через `np.allclose` с `rtol = 1e-9`, `atol = 1e-6`; выводятся максимальные абсолютная и относительная ошибки. Производительность на графиках считается как `flops / elapsed_seconds`.
