@@ -45,7 +45,7 @@ def plot_gflops_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv_path", type=pathlib.Path)
-    parser.add_argument("--out-dir", type=pathlib.Path, default=pathlib.Path("lab_1/report/figures"))
+    parser.add_argument("--out-dir", type=pathlib.Path, default=pathlib.Path("reports/lab_01/figures"))
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)

@@ -31,11 +31,11 @@ def run_once(binary: pathlib.Path, input_path: pathlib.Path, output_path: pathli
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--binary", type=pathlib.Path, default=pathlib.Path("build/lab_1/src/lab_1"))
+    parser.add_argument("--binary", type=pathlib.Path, default=pathlib.Path("build/release/src/lab_01/lab_01"))
     parser.add_argument("--data-dir", type=pathlib.Path, default=pathlib.Path("data"))
     parser.add_argument("--sizes", type=int, nargs="+", default=DEFAULT_SIZES)
-    parser.add_argument("--json-out", type=pathlib.Path, default=pathlib.Path("lab_1/results"))
-    parser.add_argument("--jsonl-out", type=pathlib.Path, default=pathlib.Path("lab_1/results/general.jsonl"))
+    parser.add_argument("--json-out", type=pathlib.Path, default=pathlib.Path("results/lab_01"))
+    parser.add_argument("--jsonl-out", type=pathlib.Path, default=pathlib.Path("results/lab_01/general.jsonl"))
     args = parser.parse_args()
 
     if not args.binary.exists():

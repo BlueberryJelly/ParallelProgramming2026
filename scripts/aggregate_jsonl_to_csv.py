@@ -9,7 +9,7 @@ import pathlib
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("jsonl_files", type=pathlib.Path, nargs="+")
-    parser.add_argument("--csv-out", type=pathlib.Path, default=pathlib.Path("lab_1/report/general.csv"))
+    parser.add_argument("--csv-out", type=pathlib.Path, default=pathlib.Path("results/lab_01/general.csv"))
     args = parser.parse_args()
 
     rows = []

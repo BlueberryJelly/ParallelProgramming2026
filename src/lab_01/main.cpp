@@ -5,10 +5,10 @@
 #include <stdexcept>
 #include <string>
 
-#include "../../utils/json_utils.hpp"
-#include "../../utils/matrix.hpp"
-#include "../../utils/multiplier.hpp"
-#include "../../utils/timer.hpp"
+#include "json_utils.hpp"
+#include "matrix.hpp"
+#include "multiplier.hpp"
+#include "timer.hpp"
 
 namespace
 {

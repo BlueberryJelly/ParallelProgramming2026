@@ -1,24 +1,25 @@
 -include .env
 
+PRESET ?= release
 BACKEND ?= seq
 ifeq ($(BACKEND),seq)
-  LAB ?= lab_1
+  LAB ?= lab_01
 endif
 
-BUILD_DIR := $(CURDIR)/build
+BUILD_DIR := $(CURDIR)/build/$(PRESET)
 SCRIPTS_DIR := $(CURDIR)/scripts
 DATA_DIR := $(CURDIR)/data
-RESULTS_DIR := $(CURDIR)/$(LAB)/results
-REPORT_DIR := $(CURDIR)/$(LAB)/report
+RESULTS_DIR := $(CURDIR)/results/$(LAB)
+REPORT_DIR := $(CURDIR)/reports/$(LAB)
 FIGURES_DIR := $(REPORT_DIR)/figures
-BUILD_BIN := $(BUILD_DIR)/$(LAB)/src/$(LAB)
+BUILD_BIN := $(BUILD_DIR)/src/$(LAB)/$(LAB)
 GENERAL_JSON := $(RESULTS_DIR)/general.jsonl
-GENERAL_CSV := $(REPORT_DIR)/general.csv
+GENERAL_CSV := $(RESULTS_DIR)/general.csv
 
 
 SIZES ?= 250 500 750 1000 1250 1500 1750 2000
 
-.PHONY: help all configure build data start plots
+.PHONY: help all configure build generate_matrices run_experiments aggregate_jsonl_to_csv validate visualize
 
 .DEFAULT_GOAL := help
 
@@ -37,15 +38,15 @@ all: configure \
 	 visualize
 
 configure:
-	cmake -G Ninja -B $(BUILD_DIR)
+	cmake --preset $(PRESET)
 
 build:
 	@test -f "$(BUILD_DIR)/CMakeCache.txt" || $(MAKE) configure
-	cmake --build $(BUILD_DIR)
+	cmake --build --preset $(PRESET)
 
 generate_matrices:
-	@rm -rf $(DATA_DIR)
 	@mkdir -p $(DATA_DIR)
+	@rm -f $(DATA_DIR)/input_*.json
 	@python3 "$(SCRIPTS_DIR)/generate_matrices.py" \
 		--out-dir $(DATA_DIR) \
 		--sizes $(SIZES) \
@@ -62,7 +63,7 @@ run_experiments:
 		--jsonl-out $(GENERAL_JSON)
 
 aggregate_jsonl_to_csv:
-	@rm -f GENERAL_CSV
+	@rm -f $(GENERAL_CSV)
 	@python3 "$(SCRIPTS_DIR)/aggregate_jsonl_to_csv.py" \
 		$(GENERAL_JSON) \
 		--csv-out $(GENERAL_CSV)
