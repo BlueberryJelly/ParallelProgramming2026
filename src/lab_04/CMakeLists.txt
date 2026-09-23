@@ -1,0 +1,21 @@
+project(lab_04 LANGUAGES CXX)
+
+include(CheckLanguage)
+check_language(CUDA)
+if(NOT CMAKE_CUDA_COMPILER)
+    message(STATUS "CUDA не найдена — lab_04 пропущена")
+    return()
+endif()
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+        set(CMAKE_CUDA_ARCHITECTURES native)
+    else()
+        set(CMAKE_CUDA_ARCHITECTURES 89)
+    endif()
+endif()
+enable_language(CUDA)
+
+add_executable(${PROJECT_NAME} main.cpp cuda_multiplier.cu)
+target_link_libraries(${PROJECT_NAME} PRIVATE utils)
+set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
