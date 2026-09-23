@@ -6,15 +6,30 @@ import pathlib
 import sys
 
 import numpy as np
+import pandas as pd
+
+RTOL = 1e-9
+ATOL = 1e-6
 
 
-def check_csv(csv_path: pathlib.Path) -> int:
-    import pandas as pd
+def reference(input_path: pathlib.Path) -> np.ndarray:
+    with input_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    a = np.array(data["matrix_a"], dtype=np.float64)
+    b = np.array(data["matrix_b"], dtype=np.float64)
+    return a @ b
 
+
+def compare(expected: np.ndarray, result: list) -> tuple[bool, float]:
+    actual = np.array(result, dtype=np.float64)
+    if expected.shape != actual.shape:
+        return False, float("inf")
+    ok = bool(np.allclose(expected, actual, rtol=RTOL, atol=ATOL))
+    return ok, float(np.max(np.abs(expected - actual)))
+
+
+def check_csv(csv_path: pathlib.Path) -> bool:
     df = pd.read_csv(csv_path)
-    if "valid" not in df.columns:
-        print(f"В {csv_path} нет колонки valid: запустите замеры с --validate")
-        return 1
     bad = df[~df["valid"].astype(bool)]
     print(f"Проверено запусков:     {len(df)}")
     print(f"Совпадает с NumPy:      {len(df) - len(bad)} из {len(df)}")
@@ -22,54 +37,16 @@ def check_csv(csv_path: pathlib.Path) -> int:
     if not bad.empty:
         print("Несовпадения:")
         print(bad.to_string(index=False))
-    return 0 if bad.empty else 1
+    return bad.empty
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input_json", type=pathlib.Path, nargs="?",
-                        help="Файл с matrix_a/matrix_b")
-    parser.add_argument("output_json", type=pathlib.Path, nargs="?",
-                        help="Файл с результатами выполнения исследуемого алгоритма")
-    parser.add_argument("--csv", type=pathlib.Path, default=None,
-                        help="Проверить колонку valid в сводном CSV (замеры с --validate)")
-    parser.add_argument("--rtol", type=float, default=1e-9)
-    parser.add_argument("--atol", type=float, default=1e-6)
+    parser.add_argument("--csv", type=pathlib.Path, required=True,
+                        help="Сводный general.csv с колонками valid и max_abs_err")
     args = parser.parse_args()
 
-    if args.csv is not None:
-        sys.exit(check_csv(args.csv))
-    if args.input_json is None or args.output_json is None:
-        parser.error("нужны input_json и output_json либо --csv")
-
-    with args.input_json.open("r", encoding="utf-8") as f:
-        input_data = json.load(f)
-    with args.output_json.open("r", encoding="utf-8") as f:
-        output_data = json.load(f)
-
-    a = np.array(input_data["matrix_a"], dtype=np.float64)
-    b = np.array(input_data["matrix_b"], dtype=np.float64)
-    result_cpp = np.array(output_data["result"], dtype=np.float64)
-
-    expected = a @ b
-
-    if expected.shape != result_cpp.shape:
-        print(f"Несовпадение формы: ожидалось {expected.shape}, получено {result_cpp.shape}")
-        sys.exit(1)
-
-    ok = bool(np.allclose(expected, result_cpp, rtol=args.rtol, atol=args.atol))
-    max_abs_err = float(np.max(np.abs(expected - result_cpp)))
-    denom = np.abs(expected) + 1e-12
-    max_rel_err = float(np.max(np.abs((expected - result_cpp) / denom)))
-
-    print(f"Размер:                 {a.shape[0]}x{a.shape[0]}")
-    print(f"Стратегия:              {output_data.get('strategy')}")
-    print(f"Время (C++) sec:          {output_data.get('elapsed_seconds')}")
-    print(f"Совпадает с NumPy:      {ok}")
-    print(f"Макс. абс. ошибка:      {max_abs_err:.3e}")
-    print(f"Макс. отн. ошибка:      {max_rel_err:.3e}")
-
-    sys.exit(0 if ok else 1)
+    sys.exit(0 if check_csv(args.csv) else 1)
 
 
 if __name__ == "__main__":
