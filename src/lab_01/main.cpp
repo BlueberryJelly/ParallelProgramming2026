@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         const std::uint64_t n = a.get_rows();
         const std::uint64_t m = a.get_columns();
         const std::uint64_t p = b.get_columns();
-        const std::uint64_t flops = 2ULL * n * m * p; // n*m*p умножений + n*m*p сложений
+        const std::uint64_t flops = 2ULL * n * m * p;
         const std::uint64_t memory_bytes = (a.size() + b.size() + result.size()) * sizeof(double);
 
         std::ostringstream oss;

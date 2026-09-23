@@ -42,9 +42,6 @@ def plot_gflops_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
     _save(fig, out_path)
 
 
-# ---------- Многопоточные замеры (л/р 2+): колонки threads и cores ----------
-
-
 def with_speedup(df: pd.DataFrame) -> pd.DataFrame:
     """Ускорение S = T(1 поток) / T(p) и эффективность E = S / p при том же числе ядер."""
     work = df.copy()
