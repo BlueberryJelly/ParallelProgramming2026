@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
+def _save(fig, out_path: pathlib.Path) -> None:
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
 def plot_time_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
     fig, ax = plt.subplots(figsize=(9, 6))
 
@@ -17,10 +23,7 @@ def plot_time_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
     ax.set_ylabel("Время выполнения, ms")
     ax.set_title("Время умножения матриц от размера задачи")
     ax.grid(True, which="both", linestyle="--", alpha=0.4)
-
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
-    plt.close(fig)
+    _save(fig, out_path)
 
 
 def plot_gflops_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
@@ -36,18 +39,10 @@ def plot_gflops_vs_size(df: pd.DataFrame, out_path: pathlib.Path) -> None:
     ax.set_ylabel("Производительность, GFLOP/s")
     ax.set_title("Производительность умножения матриц от размера задачи")
     ax.grid(True, linestyle="--", alpha=0.4)
-
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
-    plt.close(fig)
+    _save(fig, out_path)
 
 
 # ---------- Многопоточные замеры (л/р 2+): колонки threads и cores ----------
-
-def _save(fig, out_path: pathlib.Path) -> None:
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
-    plt.close(fig)
 
 
 def with_speedup(df: pd.DataFrame) -> pd.DataFrame:
@@ -191,8 +186,7 @@ def main() -> None:
     for filename, plot_fn in plots.items():
         out_path = args.out_dir / filename
         plot_fn(df, out_path)
-        if out_path.exists():
-            print(f"График сохранён: {out_path}")
+        print(f"График сохранён: {out_path}")
 
 
 if __name__ == "__main__":
