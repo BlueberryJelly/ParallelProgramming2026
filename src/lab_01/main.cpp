@@ -7,7 +7,9 @@
 
 #include "json_utils.hpp"
 #include "matrix.hpp"
-#include "multiplier.hpp"
+#include "i_multiplier.hpp"
+#include "sequential_strategy.hpp"
+#include "strategy_creator.hpp"
 #include "timer.hpp"
 
 namespace

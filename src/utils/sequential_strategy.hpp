@@ -1,28 +1,14 @@
 #pragma once
 
-#include <algorithm>
-#include <memory>
-#include <stdexcept>
+#include <cstdint>
 #include <string>
-#include <vector>
 
 #include "matrix.hpp"
+#include "i_multiplier.hpp"
 
 namespace matrix_ops
 {
-    class IMatrixMultiplier
-    {
-    public:
-        virtual ~IMatrixMultiplier() = default;
-
-        [[nodiscard]]
-        virtual matrix::Matrix multiply(const matrix::Matrix &a, const matrix::Matrix &b) const = 0;
-
-        [[nodiscard]]
-        virtual std::string name() const = 0;
-    };
-
-    class SequentialMultiplier final : public IMatrixMultiplier
+class SequentialMultiplier final : public IMatrixMultiplier
     {
     public:
         [[nodiscard]]
@@ -56,14 +42,4 @@ namespace matrix_ops
             return "sequential";
         }
     };
-
-    inline std::unique_ptr<IMatrixMultiplier> create_multiplier(const std::string &strategy)
-    {
-        if (strategy == "sequential")
-        {
-            return std::make_unique<SequentialMultiplier>();
-        }
-
-        throw std::invalid_argument("Неизвестная стратегия умножения: '" + strategy + "' (ожидалось sequential");
-    }
 }
