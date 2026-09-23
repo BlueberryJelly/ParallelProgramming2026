@@ -11,8 +11,13 @@ else ifeq ($(BACKEND),omp)
   CORES ?= 1 2 4 6
   RUN_ARGS := --threads $(THREADS) --cores $(CORES)
   VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
+else ifeq ($(BACKEND),cuda)
+  LAB ?= lab_04
+  BLOCKS ?= 32 64 128 256
+  RUN_ARGS := --block-sizes $(BLOCKS)
+  VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
 else
-  $(error Неизвестный BACKEND=$(BACKEND), ожидалось seq или omp)
+  $(error Неизвестный BACKEND=$(BACKEND), ожидалось seq, omp или cuda)
 endif
 
 BUILD_DIR := $(CURDIR)/build/$(PRESET)
@@ -35,6 +40,7 @@ help:
 	@echo "Пример: make generate_matrices SIZES=\"200 400 800\""
 	@echo "Л/р 1:  make all BACKEND=seq REPEATS=5"
 	@echo "Л/р 2:  make all BACKEND=omp THREADS=\"1 2 4 8\" CORES=\"1 2 4\""
+	@echo "Л/р 4:  make all BACKEND=cuda BLOCKS=\"4 8 16 32\""
 
 all: configure \
 	 build \
