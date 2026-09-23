@@ -5,12 +5,12 @@
 #include <stdexcept>
 #include <string>
 
+#include "bench_utils.hpp"
+#include "i_multiplier.hpp"
 #include "json_utils.hpp"
 #include "matrix.hpp"
-#include "i_multiplier.hpp"
 #include "sequential_strategy.hpp"
 #include "strategy_creator.hpp"
-#include "timer.hpp"
 
 namespace
 {
@@ -18,8 +18,7 @@ namespace
     {
         std::filesystem::path input_path;
         std::filesystem::path output_path;
-        std::string strategy = "sequential";
-        std::uint32_t threads = 1;
+        int repeats = 1;
     };
 
     CliOptions parse_cli(int argc, char **argv)
@@ -27,12 +26,16 @@ namespace
         if (argc < 3)
         {
             throw std::invalid_argument(
-                "Использование: matrix_mul <input.json> <output.json>");
+                "Использование: lab_01 <input.json> <output.json> [repeats=1]");
         }
 
         CliOptions options;
         options.input_path = argv[1];
         options.output_path = argv[2];
+        if (argc > 3)
+        {
+            options.repeats = bench::parse_positive(argv[3], "Число повторов");
+        }
 
         return options;
     }
@@ -50,12 +53,10 @@ int main(int argc, char **argv)
 
         matrix::Matrix::check_multiplicable(a, b);
 
-        const auto multiplier = matrix_ops::create_multiplier(options.strategy);
-
-        util::Timer timer;
-        timer.start();
-        const matrix::Matrix result = multiplier->multiply(a, b);
-        timer.stop();
+        const auto multiplier = matrix_ops::create_multiplier("sequential");
+        const bench::Measurement measurement =
+            bench::measure(options.repeats, [&] { return multiplier->multiply(a, b); });
+        const matrix::Matrix &result = measurement.result;
 
         const std::uint64_t n = a.get_rows();
         const std::uint64_t m = a.get_columns();
@@ -70,17 +71,17 @@ int main(int argc, char **argv)
         oss << "  \"columns_a\": " << m << ",\n";
         oss << "  \"columns_b\": " << p << ",\n";
         oss << "  \"strategy\": \"" << multiplier->name() << "\",\n";
-        oss << "  \"threads\": " << options.threads << ",\n";
+        oss << "  \"repeats\": " << options.repeats << ",\n";
         oss << "  \"flops\": " << flops << ",\n";
         oss << "  \"memory_bytes\": " << memory_bytes << ",\n";
-        oss << "  \"elapsed_seconds\": " << timer.elapsed_seconds() << "\n";
+        oss << "  \"elapsed_seconds\": " << measurement.elapsed_seconds << "\n";
         oss << "}\n";
 
         json_utils::write_text_file(options.output_path, oss.str());
 
         std::cout << "OK: n=" << n
                   << " strategy=" << multiplier->name()
-                  << " time=" << timer.elapsed_seconds() << "s"
+                  << " time=" << measurement.elapsed_seconds << "s"
                   << " flops=" << flops << "\n";
 
         return 0;
