@@ -136,8 +136,64 @@ def plot_parallel(df: pd.DataFrame, out_dir: pathlib.Path) -> list[pathlib.Path]
     return paths
 
 
+def plot_cuda(df: pd.DataFrame, out_dir: pathlib.Path) -> list[pathlib.Path]:
+    work = df.copy()
+    work["gflops"] = work["flops"] / work["elapsed_seconds"] / 1e9
+    block_sizes = sorted(work["block_x"].unique())
+    sizes = sorted(work["size"].unique())
+    paths = []
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for b in block_sizes:
+        part = work[work["block_x"] == b].sort_values("size")
+        ax.plot(part["size"], part["elapsed_seconds"] * 1000, marker="o", label=f"{b}x{b}")
+    ax.set_xlabel("Размер матрицы N (N x N)")
+    ax.set_ylabel("Время выполнения, ms")
+    ax.set_title("Время умножения от размера задачи (CUDA)")
+    ax.set_yscale("log")
+    ax.grid(True, which="both", linestyle="--", alpha=0.4)
+    ax.legend(title="Блок")
+    paths.append(out_dir / "time_vs_size.png"); _save(fig, paths[-1])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for b in block_sizes:
+        part = work[work["block_x"] == b].sort_values("size")
+        ax.plot(part["size"], part["gflops"], marker="o", label=f"{b}x{b}")
+    ax.set_xlabel("Размер матрицы N (N x N)")
+    ax.set_ylabel("Производительность, GFLOP/s")
+    ax.set_title("Производительность от размера задачи (CUDA)")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(title="Блок")
+    paths.append(out_dir / "gflops_vs_size.png"); _save(fig, paths[-1])
+
+    n_max = max(sizes)
+    big = work[work["size"] == n_max].sort_values("block_x")
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(big["block_x"], big["gflops"], marker="o")
+    ax.set_xticks(block_sizes, [f"{b}x{b}" for b in block_sizes])
+    ax.set_xlabel("Конфигурация блока (block_x = block_y)")
+    ax.set_ylabel("Производительность, GFLOP/s")
+    ax.set_title(f"Производительность от конфигурации сетки блоков, N={n_max}")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    paths.append(out_dir / "gflops_vs_block.png"); _save(fig, paths[-1])
+
+    return paths
+
+
+def write_tables_cuda(df: pd.DataFrame, out_path: pathlib.Path) -> None:
+    work = df.copy()
+    work["gflops"] = work["flops"] / work["elapsed_seconds"] / 1e9
+    table = work.pivot_table(index="size", columns="block_x", values="gflops")
+    lines = ["### Производительность, GFLOP/s (столбцы — размер блока N x N)\n"]
+    lines.append("| N / блок | " + " | ".join(f"{b}x{b}" for b in table.columns) + " |")
+    lines.append("|---" * (len(table.columns) + 1) + "|")
+    for n, row in table.iterrows():
+        lines.append(f"| {n} | " + " | ".join(f"{v:.2f}" for v in row) + " |")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def write_tables(df: pd.DataFrame, out_path: pathlib.Path) -> None:
-    """Сводные таблицы в Markdown для вставки в отчёт."""
     work = with_speedup(df)
     lines = []
     for cores in sorted(work["cores"].unique()):
@@ -168,6 +224,14 @@ def main() -> None:
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(args.csv_path)
+
+    if "block_x" in df.columns:
+        for out_path in plot_cuda(df, args.out_dir):
+            print(f"График сохранён: {out_path}")
+        if args.tables_out is not None:
+            write_tables_cuda(df, args.tables_out)
+            print(f"Таблицы сохранены: {args.tables_out}")
+        return
 
     if "threads" in df.columns:
         for out_path in plot_parallel(df, args.out_dir):
