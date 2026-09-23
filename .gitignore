@@ -18,3 +18,4 @@ data/*
 !data/.gitkeep
 
 results/*/output_*.json
+results/*/*.jsonl
