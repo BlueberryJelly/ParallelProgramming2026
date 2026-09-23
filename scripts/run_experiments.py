@@ -16,10 +16,13 @@ def cpu_list(cores: int) -> str:
 
 
 def run_once(binary: pathlib.Path, input_path: pathlib.Path, output_path: pathlib.Path,
-             repeats: int, threads: int | None, cores: int | None) -> tuple[dict, dict]:
+             repeats: int, threads: int | None, cores: int | None,
+             block: tuple[int, int] | None = None) -> tuple[dict, dict]:
     cmd = [str(binary), str(input_path), str(output_path), str(repeats)]
     if threads is not None:
         cmd.append(str(threads))
+    if block is not None:
+        cmd.extend([str(block[0]), str(block[1])])
     if cores is not None:
         cmd = ["taskset", "-c", cpu_list(cores)] + cmd
 
@@ -38,6 +41,13 @@ def run_once(binary: pathlib.Path, input_path: pathlib.Path, output_path: pathli
     if threads is not None:
         record["threads"] = result["threads"]
         record["cores"] = cores if cores is not None else result["available_procs"]
+    if block is not None:
+        record["block_x"] = result["block_x"]
+        record["block_y"] = result["block_y"]
+        record["threads_per_block"] = result["threads_per_block"]
+        record["grid_x"] = result["grid_x"]
+        record["grid_y"] = result["grid_y"]
+        record["gpu_name"] = result["gpu_name"]
     return record, result
 
 
@@ -59,7 +69,12 @@ def main() -> None:
                         help="Числа потоков (OpenMP)")
     parser.add_argument("--cores", type=int, nargs="+", default=None,
                         help="Числа ядер, выделяемых через taskset (OpenMP)")
+    parser.add_argument("--block-sizes", type=int, nargs="+", default=None,
+                        help="Размеры квадратного блока CUDA (block_x = block_y)")
     args = parser.parse_args()
+
+    if args.block_sizes and (args.threads or args.cores):
+        raise SystemExit("--block-sizes несовместимо с --threads/--cores (разные лабораторные)")
 
     if not args.binary.exists():
         raise SystemExit(f"Исполняемый файл не найден: {args.binary}. Сначала соберите проект.")
@@ -74,6 +89,9 @@ def main() -> None:
             print(f"Пропуск: cores={c} больше доступных ядер ({available})")
 
     threads_list: list[int | None] = args.threads or [None]
+    blocks_list: list[tuple[int, int] | None] = (
+        [(b, b) for b in args.block_sizes] if args.block_sizes else [None]
+    )
 
     args.json_out.mkdir(parents=True, exist_ok=True)
     args.jsonl_out.parent.mkdir(parents=True, exist_ok=True)
@@ -86,19 +104,22 @@ def main() -> None:
                 continue
             expected = reference(input_path)
 
-            for cores in cores_list:
-                for threads in threads_list:
-                    suffix = "" if threads is None else f"_t{threads}" + ("" if cores is None else f"_c{cores}")
-                    output_path = args.json_out / f"output_{n}{suffix}.json"
+            for block in blocks_list:
+                for cores in cores_list:
+                    for threads in threads_list:
+                        suffix = "" if threads is None else f"_t{threads}" + ("" if cores is None else f"_c{cores}")
+                        if block is not None:
+                            suffix += f"_b{block[0]}x{block[1]}"
+                        output_path = args.json_out / f"output_{n}{suffix}.json"
 
-                    record, result = run_once(args.binary, input_path, output_path,
-                                              args.repeats, threads, cores)
-                    record["valid"], record["max_abs_err"] = compare(expected, result["result"])
-                    output_path.unlink()
+                        record, result = run_once(args.binary, input_path, output_path,
+                                                  args.repeats, threads, cores, block)
+                        record["valid"], record["max_abs_err"] = compare(expected, result["result"])
+                        output_path.unlink()
 
-                    jsonl_file.write(json.dumps(record) + "\n")
-                    jsonl_file.flush()
-                    print(record)
+                        jsonl_file.write(json.dumps(record) + "\n")
+                        jsonl_file.flush()
+                        print(record)
 
 
 if __name__ == "__main__":
