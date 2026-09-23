@@ -6,8 +6,6 @@ import pathlib
 
 import numpy as np
 
-DEFAULT_SIZES = [200, 400, 800, 1200, 1600, 2000]
-
 
 def generate_matrix(n: int, seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
@@ -17,9 +15,9 @@ def generate_matrix(n: int, seed: int) -> np.ndarray:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", type=pathlib.Path,
-                        default=pathlib.Path("data"))
+                        required=True, help="Путь, по которому сохраняются сгенерированные матрицы")
     parser.add_argument("--sizes", type=int, nargs="+",
-                        default=DEFAULT_SIZES)
+                        required=True, help="Размеры генерируемых матриц")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 

@@ -8,17 +8,18 @@ import pathlib
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("jsonl_files", type=pathlib.Path, nargs="+")
-    parser.add_argument("--csv-out", type=pathlib.Path, default=pathlib.Path("results/lab_01/general.csv"))
+    parser.add_argument("--jsonl-path", type=pathlib.Path, 
+                        required=True, help="Расположение входного файла general.jsonl")
+    parser.add_argument("--csv-out", type=pathlib.Path,
+                        required=True, help="Расположение выходного файла general.csv")
     args = parser.parse_args()
 
     rows = []
-    for jsonl_path in args.jsonl_files:
-        with jsonl_path.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    rows.append(json.loads(line))
+    with args.jsonl_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
 
     if not rows:
         print("Нет данных для агрегации")

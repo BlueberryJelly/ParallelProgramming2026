@@ -8,13 +8,39 @@ import sys
 import numpy as np
 
 
+def check_csv(csv_path: pathlib.Path) -> int:
+    import pandas as pd
+
+    df = pd.read_csv(csv_path)
+    if "valid" not in df.columns:
+        print(f"В {csv_path} нет колонки valid: запустите замеры с --validate")
+        return 1
+    bad = df[~df["valid"].astype(bool)]
+    print(f"Проверено запусков:     {len(df)}")
+    print(f"Совпадает с NumPy:      {len(df) - len(bad)} из {len(df)}")
+    print(f"Макс. абс. ошибка:      {df['max_abs_err'].max():.3e}")
+    if not bad.empty:
+        print("Несовпадения:")
+        print(bad.to_string(index=False))
+    return 0 if bad.empty else 1
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input_json", type=pathlib.Path, help="Файл с matrix_a/matrix_b")
-    parser.add_argument("output_json", type=pathlib.Path, help="Файл с result от C++ программы")
+    parser.add_argument("input_json", type=pathlib.Path, nargs="?",
+                        help="Файл с matrix_a/matrix_b")
+    parser.add_argument("output_json", type=pathlib.Path, nargs="?",
+                        help="Файл с результатами выполнения исследуемого алгоритма")
+    parser.add_argument("--csv", type=pathlib.Path, default=None,
+                        help="Проверить колонку valid в сводном CSV (замеры с --validate)")
     parser.add_argument("--rtol", type=float, default=1e-9)
     parser.add_argument("--atol", type=float, default=1e-6)
     args = parser.parse_args()
+
+    if args.csv is not None:
+        sys.exit(check_csv(args.csv))
+    if args.input_json is None or args.output_json is None:
+        parser.error("нужны input_json и output_json либо --csv")
 
     with args.input_json.open("r", encoding="utf-8") as f:
         input_data = json.load(f)
