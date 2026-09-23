@@ -13,7 +13,7 @@ else ifeq ($(BACKEND),omp)
   VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
 else ifeq ($(BACKEND),cuda)
   LAB ?= lab_04
-  BLOCKS ?= 32 64 128 256
+  BLOCKS ?= 4 8 16 32
   RUN_ARGS := --block-sizes $(BLOCKS)
   VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
 else
