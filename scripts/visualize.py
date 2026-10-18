@@ -212,6 +212,134 @@ def write_tables(df: pd.DataFrame, out_path: pathlib.Path) -> None:
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def with_speedup_mpi(df: pd.DataFrame) -> pd.DataFrame:
+    """Ускорение S = T(1 процесс) / T(p) и эффективность E = S / p для MPI."""
+    work = df.copy()
+    work["gflops"] = work["flops"] / work["elapsed_seconds"] / 1e9
+    if "comm_seconds" not in work.columns:
+        work["comm_seconds"] = (work["elapsed_seconds"] - work["compute_seconds"]).clip(lower=0.0)
+    base = (work[work["processes"] == 1]
+            .set_index("size")["elapsed_seconds"]
+            .rename("t1_seconds"))
+    work = work.join(base, on="size")
+    work["speedup"] = work["t1_seconds"] / work["elapsed_seconds"]
+    work["efficiency"] = work["speedup"] / work["processes"]
+    work["comm_share"] = work["comm_seconds"] / work["elapsed_seconds"]
+    return work
+
+
+def plot_mpi(df: pd.DataFrame, out_dir: pathlib.Path) -> list:
+    work = with_speedup_mpi(df)
+    procs = sorted(work["processes"].unique())
+    sizes = sorted(work["size"].unique())
+    paths = []
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for p in procs:
+        part = work[work["processes"] == p].sort_values("size")
+        ax.plot(part["size"], part["elapsed_seconds"] * 1000, marker="o", label=f"{p}")
+    ax.set_xlabel("Размер матрицы N (N x N)")
+    ax.set_ylabel("Время выполнения, ms")
+    ax.set_title("Время умножения от размера задачи (MPI)")
+    ax.set_yscale("log")
+    ax.grid(True, which="both", linestyle="--", alpha=0.4)
+    ax.legend(title="Процессы")
+    paths.append(out_dir / "time_vs_size.png"); _save(fig, paths[-1])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for p in procs:
+        part = work[work["processes"] == p].sort_values("size")
+        ax.plot(part["size"], part["gflops"], marker="o", label=f"{p}")
+    ax.set_xlabel("Размер матрицы N (N x N)")
+    ax.set_ylabel("Производительность, GFLOP/s")
+    ax.set_title("Производительность от размера задачи (MPI)")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(title="Процессы")
+    paths.append(out_dir / "gflops_vs_size.png"); _save(fig, paths[-1])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for n in sizes:
+        part = work[work["size"] == n].sort_values("processes")
+        ax.plot(part["processes"], part["speedup"], marker="o", label=f"N={n}")
+    ax.plot(procs, procs, "k--", alpha=0.6, label="идеальное")
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(procs, [str(p) for p in procs])
+    ax.set_xlabel("Число MPI-процессов p")
+    ax.set_ylabel("Ускорение S = T1 / Tp")
+    ax.set_title("Ускорение от числа процессов (MPI)")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(ncol=2, fontsize=8)
+    paths.append(out_dir / "speedup_vs_procs.png"); _save(fig, paths[-1])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for n in sizes:
+        part = work[work["size"] == n].sort_values("processes")
+        ax.plot(part["processes"], part["efficiency"], marker="o", label=f"N={n}")
+    ax.axhline(1.0, color="k", linestyle="--", alpha=0.6)
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(procs, [str(p) for p in procs])
+    ax.set_xlabel("Число MPI-процессов p")
+    ax.set_ylabel("Эффективность E = S / p")
+    ax.set_title("Эффективность распараллеливания (MPI)")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(ncol=2, fontsize=8)
+    paths.append(out_dir / "efficiency_vs_procs.png"); _save(fig, paths[-1])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for n in sizes:
+        part = work[work["size"] == n].sort_values("processes")
+        ax.plot(part["processes"], part["comm_share"] * 100, marker="o", label=f"N={n}")
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(procs, [str(p) for p in procs])
+    ax.set_xlabel("Число MPI-процессов p")
+    ax.set_ylabel("Доля обменов в общем времени, %")
+    ax.set_title("Доля накладных расходов на обмен данными (MPI)")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(ncol=2, fontsize=8)
+    paths.append(out_dir / "comm_share_vs_procs.png"); _save(fig, paths[-1])
+
+    n_max = max(sizes)
+    big = work[work["size"] == n_max].sort_values("processes")
+    labels = [str(p) for p in big["processes"]]
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.bar(labels, big["compute_seconds"], label="вычисление")
+    ax.bar(labels, big["comm_seconds"], bottom=big["compute_seconds"], label="обмен данными")
+    ax.set_xlabel("Число MPI-процессов p")
+    ax.set_ylabel("Время, с")
+    ax.set_title(f"Структура времени выполнения, N={n_max}")
+    ax.grid(True, axis="y", linestyle="--", alpha=0.4)
+    ax.legend()
+    paths.append(out_dir / "time_breakdown.png"); _save(fig, paths[-1])
+
+    return paths
+
+
+def write_tables_mpi(df: pd.DataFrame, out_path: pathlib.Path) -> None:
+    work = with_speedup_mpi(df)
+    lines = []
+    if "nodes" in work.columns:
+        nodes = work.groupby("processes")["nodes"].max()
+        lines.append("### Размещение процессов по узлам\n")
+        lines.append("| Процессы | " + " | ".join(str(p) for p in nodes.index) + " |")
+        lines.append("|---" * (len(nodes) + 1) + "|")
+        lines.append("| Узлов | " + " | ".join(str(int(v)) for v in nodes.values) + " |")
+        lines.append("")
+    for column, title, fmt in (("elapsed_seconds", "Время, с", "{:.4g}"),
+                               ("speedup", "Ускорение S", "{:.2f}"),
+                               ("efficiency", "Эффективность E", "{:.2f}"),
+                               ("gflops", "Производительность, GFLOP/s", "{:.2f}"),
+                               ("comm_share", "Доля обменов в общем времени", "{:.1%}")):
+        table = work.pivot_table(index="size", columns="processes", values=column)
+        lines.append(f"### {title}\n")
+        lines.append("| N / процессы | " + " | ".join(str(p) for p in table.columns) + " |")
+        lines.append("|---" * (len(table.columns) + 1) + "|")
+        for n, row in table.iterrows():
+            lines.append(f"| {n} | " + " | ".join(fmt.format(v) for v in row) + " |")
+        lines.append("")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv_path", type=pathlib.Path,
@@ -230,6 +358,14 @@ def main() -> None:
             print(f"График сохранён: {out_path}")
         if args.tables_out is not None:
             write_tables_cuda(df, args.tables_out)
+            print(f"Таблицы сохранены: {args.tables_out}")
+        return
+
+    if "processes" in df.columns:
+        for out_path in plot_mpi(df, args.out_dir):
+            print(f"График сохранён: {out_path}")
+        if args.tables_out is not None:
+            write_tables_mpi(df, args.tables_out)
             print(f"Таблицы сохранены: {args.tables_out}")
         return
 
