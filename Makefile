@@ -11,13 +11,21 @@ else ifeq ($(BACKEND),omp)
   CORES ?= 1 2 4 6
   RUN_ARGS := --threads $(THREADS) --cores $(CORES)
   VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
+else ifeq ($(BACKEND),mpi)
+  LAB ?= lab_03
+  PROCS ?= 1 2 4 8 16 24 32
+  MPIRUN ?= mpirun -np {procs}
+  MPICXX ?= mpicxx
+  MPI_CXXFLAGS ?= -std=c++11 -O3 -DNDEBUG -Wall -Wextra -Wno-attributes
+  RUN_ARGS := --procs $(PROCS) --mpirun "$(MPIRUN)"
+  VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
 else ifeq ($(BACKEND),cuda)
   LAB ?= lab_04
   BLOCKS ?= 4 8 16 32
   RUN_ARGS := --block-sizes $(BLOCKS)
   VIZ_ARGS := --tables-out $(CURDIR)/reports/$(LAB)/tables.md
 else
-  $(error Неизвестный BACKEND=$(BACKEND), ожидалось seq, omp или cuda)
+  $(error Неизвестный BACKEND=$(BACKEND), ожидалось seq, omp, mpi или cuda)
 endif
 
 BUILD_DIR := $(CURDIR)/build/$(PRESET)
@@ -40,6 +48,7 @@ help:
 	@echo "Пример: make generate_matrices SIZES=\"200 400 800\""
 	@echo "Л/р 1:  make all BACKEND=seq REPEATS=5"
 	@echo "Л/р 2:  make all BACKEND=omp THREADS=\"1 2 4 8\" CORES=\"1 2 4\""
+	@echo "Л/р 3:  make all BACKEND=mpi PROCS=\"1 2 4 8\" (сборка через mpicxx, без CMake)"
 	@echo "Л/р 4:  make all BACKEND=cuda BLOCKS=\"4 8 16 32\""
 
 all: configure \
@@ -50,12 +59,20 @@ all: configure \
 	 validate \
 	 visualize
 
+ifeq ($(BACKEND),mpi)
+configure:
+	@mkdir -p $(dir $(BUILD_BIN))
+
+build: configure
+	$(MPICXX) $(MPI_CXXFLAGS) -I$(CURDIR)/src/utils $(CURDIR)/src/$(LAB)/main.cpp -o $(BUILD_BIN)
+else
 configure:
 	cmake --preset $(PRESET)
 
 build:
 	@test -f "$(BUILD_DIR)/CMakeCache.txt" || $(MAKE) configure
 	cmake --build --preset $(PRESET)
+endif
 
 generate_matrices:
 	@mkdir -p $(DATA_DIR)
