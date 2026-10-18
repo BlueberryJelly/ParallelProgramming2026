@@ -4,9 +4,9 @@ import argparse
 import json
 import pathlib
 import sys
+from typing import Tuple
 
 import numpy as np
-import pandas as pd
 
 RTOL = 1e-9
 ATOL = 1e-6
@@ -20,7 +20,7 @@ def reference(input_path: pathlib.Path) -> np.ndarray:
     return a @ b
 
 
-def compare(expected: np.ndarray, result: list) -> tuple[bool, float]:
+def compare(expected: np.ndarray, result: list) -> Tuple[bool, float]:
     actual = np.array(result, dtype=np.float64)
     if expected.shape != actual.shape:
         return False, float("inf")
@@ -29,6 +29,8 @@ def compare(expected: np.ndarray, result: list) -> tuple[bool, float]:
 
 
 def check_csv(csv_path: pathlib.Path) -> bool:
+    import pandas as pd
+
     df = pd.read_csv(csv_path)
     bad = df[~df["valid"].astype(bool)]
     print(f"Проверено запусков:     {len(df)}")
