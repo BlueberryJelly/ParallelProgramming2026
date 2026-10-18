@@ -17,6 +17,7 @@ data/                 входные матрицы input_<N>.json (генери
 reports/lab_XX/       отчёт README.md и графики figures/
 results/lab_XX/       результаты замеров: general.jsonl, general.csv, output_<N>.json (в Git хранится .csv)
 scripts/              генерация данных, запуск замеров, агрегация, проверка и построение графиков
+scripts/cluster/      подготовка и Slurm-задача для суперкомпьютера «Сергей Королёв» (lab_03)
 src/utils/            общие заголовочные файлы утилит
 src/lab_XX/           исходники лабораторной и её CMakeLists.txt
 CMakeLists.txt        корневой проект, подключает src/lab_XX
@@ -28,6 +29,8 @@ requirements.txt      зависимости Python
 ## Требования
 
 CMake ≥ 3.20, Ninja, компилятор с поддержкой C++20 (GCC, Clang или MSVC), Python ≥ 3.10.
+
+Для `lab_03` (MPI) требуется реализация MPI (Open MPI, MPICH или Intel MPI) с обёрткой `mpicxx`; `lab_03` написана на C++11 и собирается через `mpicxx` без CMake (`make build BACKEND=mpi`), что позволяет собрать её на суперкомпьютере с GCC 4.8.5. Скрипты, нужные для замеров (`generate_matrices.py`, `run_experiments.py`, `validate.py`, `aggregate_jsonl_to_csv.py`), совместимы с Python 3.6 и требуют только NumPy.
 
 Для `lab_04` (CUDA) дополнительно требуются CUDA Toolkit (`nvcc`) и GPU NVIDIA. При их отсутствии `lab_04` автоматически исключается из сборки при конфигурации, а остальные лабораторные собираются как обычно.
 
@@ -47,6 +50,7 @@ make all SIZES="200 400 800"   # свой набор размеров
 make build PRESET=debug        # отладочная сборка в build/debug
 make all BACKEND=omp           # lab_02: серия замеров по потокам и ядрам
 make all BACKEND=omp THREADS="1 2 4 8" CORES="1 2 4" REPEATS=5
+make all BACKEND=mpi PROCS="1 2 4"   # lab_03: серия замеров по числу MPI-процессов
 make all BACKEND=cuda          # lab_04: серия замеров по конфигурациям блока CUDA
 make all BACKEND=cuda BLOCKS="4 8 16 32" SIZES="512 1024 2048 4096" REPEATS=5
 ```
@@ -84,6 +88,16 @@ cmake --build --preset release
 
 * `threads` - число потоков;
 * `cores` - число логических процессоров, выделенных процессу с помощью `taskset -c` (только Linux).
+
+Для сценариев на MPI (`lab_03`) дополнительно фиксируются:
+
+* `processes` - число MPI-процессов, `nodes` и `node_names` - узлы, на которых они размещены;
+* `compute_seconds` - максимальное по процессам время только локального умножения;
+* `comm_seconds` - разность `elapsed_seconds − compute_seconds`, т. е. время обменов (`MPI_Bcast`, `MPI_Scatterv`, `MPI_Gatherv`) и ожидания.
+
+`elapsed_seconds` для MPI включает полный цикл `multiply()` - рассылку исходных данных, вычисление и сбор результата; перед каждым повтором процессы синхронизируются `MPI_Barrier`.
+
+Запуск на суперкомпьютере «Сергей Королёв» описан в [отчёте л/р 3](reports/lab_03/README.md#запуск-на-суперкомпьютере).
 
 Для сценариев на CUDA (`lab_04`) дополнительно фиксируются:
 
