@@ -19,3 +19,6 @@ data/*
 
 results/*/output_*.json
 results/*/*.jsonl
+
+*.dat
+*.o
