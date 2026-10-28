@@ -8,6 +8,8 @@
 
 using namespace std;
 
+#define NUM_THREADS 6
+
 typedef struct {
   // Control work assignments
   int start, end;
@@ -62,30 +64,29 @@ double dist(double *x, double *y, int nDim) {
 }
 
 /**
- * Assigns each data point to its "closest" cluster centroid.
+ * Assigns each data point in [args->start, args->end) to its "closest"
+ * cluster centroid. The work is split across data points (M is ~1e6) rather
+ * than across clusters (K is only 3), so it scales with the thread count and
+ * every thread gets an equal amount of work.
  */
 void computeAssignments(WorkerArgs *const args) {
-  double *minDist = new double[args->M];
-  
-  // Initialize arrays
-  for (int m =0; m < args->M; m++) {
-    minDist[m] = 1e30;
-    args->clusterAssignments[m] = -1;
-  }
-
-  // Assign datapoints to closest centroids
-  for (int k = args->start; k < args->end; k++) {
-    for (int m = 0; m < args->M; m++) {
+  for (int m = args->start; m < args->end; m++) {
+    double minDist = 1e30;
+    int best = -1;
+    for (int k = 0; k < args->K; k++) {
       double d = dist(&args->data[m * args->N],
                       &args->clusterCentroids[k * args->N], args->N);
-      if (d < minDist[m]) {
-        minDist[m] = d;
-        args->clusterAssignments[m] = k;
+      if (d < minDist) {
+        minDist = d;
+        best = k;
       }
     }
-  }
+    args->clusterAssignments[m] = best;
+      }
+    }
 
-  delete[] minDist;
+static void computeAssignmentsThread(WorkerArgs *const args) {
+  computeAssignments(args);
 }
 
 /**
@@ -203,11 +204,27 @@ void kMeansThread(double *data, double *clusterCentroids, int *clusterAssignment
       prevCost[k] = currCost[k];
     }
 
-    // Setup args struct
+    // Parallel step: split the M data points evenly across threads.
+    WorkerArgs threadArgs[NUM_THREADS];
+    std::thread workers[NUM_THREADS];
+    int chunk = (M + NUM_THREADS - 1) / NUM_THREADS;
+    for (int t = 0; t < NUM_THREADS; t++) {
+      threadArgs[t] = args;
+      threadArgs[t].start = min(t * chunk, M);
+      threadArgs[t].end = min((t + 1) * chunk, M);
+    }
+    for (int t = 1; t < NUM_THREADS; t++) {
+      workers[t] = std::thread(computeAssignmentsThread, &threadArgs[t]);
+    }
+    computeAssignmentsThread(&threadArgs[0]); // main thread does chunk 0
+    for (int t = 1; t < NUM_THREADS; t++) {
+      workers[t].join();
+    }
+
+    // The remaining steps are serial and need the full ranges
+    // (computeCost uses start/end as a range of clusters).
     args.start = 0;
     args.end = K;
-
-    computeAssignments(&args);
     computeCentroids(&args);
     computeCost(&args);
 
