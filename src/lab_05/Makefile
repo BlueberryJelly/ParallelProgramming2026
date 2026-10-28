@@ -1,36 +1,42 @@
 CXX = g++ -m64 -march=native
-CXXFLAGS = -I./common -Iobjs/ -O3 -Wall
+CXXFLAGS = -I./common -I$(OBJDIR)/ -O3 -Wall
 
 APP_NAME = kmeans
-OBJDIR = objs
+BUILDDIR = build
+OBJDIR = $(BUILDDIR)/objs
+DATADIR = data
+LOGDIR = log
+PNGDIR = raw
 COMMONDIR = ./common
 
-PPM_CXX = $(COMMONDIR)/ppm.cpp
-PPM_OBJ = $(addprefix $(OBJDIR)/, $(subst $(COMMONDIR)/,, $(PPM_CXX:.cpp=.o)))
+OBJS = $(OBJDIR)/main.o $(OBJDIR)/kmeansThread.o $(OBJDIR)/utils.o \
+       $(OBJDIR)/ppm.o $(OBJDIR)/tasksys.o
 
-TASKSYS_CXX = $(COMMONDIR)/tasksys.cpp
-TASKSYS_LIB = -lpthread
-TASKSYS_OBJ = $(addprefix $(OBJDIR)/, $(subst $(COMMONDIR)/,, $(TASKSYS_CXX:.cpp=.o)))
+default: $(BUILDDIR)/$(APP_NAME)
 
-default: $(APP_NAME)
-
-.PHONY: dirs clean
+.PHONY: default dirs run plot all clean
 
 dirs:
-	/bin/mkdir -p $(OBJDIR)/
+	mkdir -p $(OBJDIR) $(DATADIR) $(LOGDIR) $(PNGDIR)
+
+$(BUILDDIR)/$(APP_NAME): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) -lm -lpthread
+
+$(OBJDIR)/%.o: %.cpp | dirs
+	$(CXX) $< $(CXXFLAGS) -c -o $@
+
+$(OBJDIR)/%.o: $(COMMONDIR)/%.cpp | dirs
+	$(CXX) $< $(CXXFLAGS) -c -o $@
+
+$(OBJDIR)/main.o $(OBJDIR)/kmeansThread.o: $(COMMONDIR)/CycleTimer.h
+
+run: default
+	./$(BUILDDIR)/$(APP_NAME)
+
+plot:
+	python3 plot.py
+
+all: run plot
 
 clean:
-	/bin/rm -rf $(OBJDIR) *.ppm *.log *.png *~ $(APP_NAME)
-
-OBJS = $(OBJDIR)/main.o $(OBJDIR)/kmeansThread.o $(OBJDIR)/utils.o $(PPM_OBJ) $(TASKSYS_OBJ)
-
-$(APP_NAME): dirs $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) -lm $(TASKSYS_LIB)
-
-$(OBJDIR)/%.o: %.cpp
-	$(CXX) $< $(CXXFLAGS) -c -o $@
-
-$(OBJDIR)/%.o: $(COMMONDIR)/%.cpp
-	$(CXX) $< $(CXXFLAGS) -c -o $@
-
-$(OBJDIR)/main.o: $(COMMONDIR)/CycleTimer.h
+	rm -rf $(BUILDDIR) $(DATADIR) $(LOGDIR) $(PNGDIR) *.ppm *~

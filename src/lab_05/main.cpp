@@ -122,14 +122,14 @@ int main() {
   }
 
   // Uncomment to generate data file
-  writeData("./data.dat", data, clusterCentroids, clusterAssignments, &M, &N,
+  writeData("data/data.dat", data, clusterCentroids, clusterAssignments, &M, &N,
             &K, &epsilon);
 
   printf("Running K-means with: M=%d, N=%d, K=%d, epsilon=%f\n", M, N,
          K, epsilon);
 
   // Log the starting state of the algorithm
-  logToFile("./start.log", SAMPLE_RATE, data, clusterAssignments,
+  logToFile("log/start.log", SAMPLE_RATE, data, clusterAssignments,
             clusterCentroids, M, N, K);
 
   double startTime = CycleTimer::currentSeconds();
@@ -138,7 +138,7 @@ int main() {
   printf("[Total Time]: %.3f ms\n", (endTime - startTime) * 1000);
 
   // Log the end state of the algorithm
-  logToFile("./end.log", SAMPLE_RATE, data, clusterAssignments,
+  logToFile("log/end.log", SAMPLE_RATE, data, clusterAssignments,
             clusterCentroids, M, N, K);
 
   delete[] data;

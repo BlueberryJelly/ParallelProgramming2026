@@ -20,7 +20,5 @@ data/
 results/*/output_*.json
 results/*/*.jsonl
 
-objs/
-*.dat
-*.log
-kmeans
+log/
+raw/
