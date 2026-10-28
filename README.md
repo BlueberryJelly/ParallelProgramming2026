@@ -8,7 +8,7 @@
 | lab_02 | OpenMP | [src/lab_02](src/lab_02) | [reports/lab_02](reports/lab_02) | [results/lab_02](results/lab_02) |
 | lab_03 | MPI (суперкомпьютер «Сергей Королёв») | [src/lab_03](src/lab_03) | [reports/lab_03](reports/lab_03/README.md) | [results/lab_03](results/lab_03) |
 | lab_04 | CUDA | [src/lab_04](src/lab_04) | [reports/lab_04](reports/lab_04) | [results/lab_04](results/lab_04) |
-| lab_05 | - | [src/lab_05](src/lab_05) | [reports/lab_05](reports/lab_05) | [results/lab_05](results/lab_05) |
+| lab_05 | Оптимизация K-Means | [src/lab_05](src/lab_05) | [reports/lab_05](reports/lab_05) | [results/lab_05](results/lab_05) |
 
 ## Структура репозитория
 
